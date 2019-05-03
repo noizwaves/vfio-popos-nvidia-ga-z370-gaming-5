@@ -49,12 +49,11 @@ The following guides were helpful in getting this all to work:
 
 `$ sudo apt install qemu-kvm libvirt-clients libvirt-daemon-system bridge-utils virt-manager ovmf`
 
-## Step X. Disable `nouveau` drivers
+## Step X. Disable Nvidia drivers
 
-1. Create file at `/etc/modprobe.d/blacklist-nouveau.conf` with contents:
+1. Create file at `/etc/modprobe.d/blacklist-nvidia.conf` with contents:
     ```
-    blacklist nouveau
-    options nouveau modeset=0
+    blacklist nvidia
     ```
 
 ## Step X. Add kernel parameters
@@ -70,20 +69,21 @@ The following guides were helpful in getting this all to work:
 Look up GPU IDs by running `$ lspci -nn | grep -i nvidia`. The output will look something like:
 
     ```
-    TODO: Sample output here.
+    01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GP104 [GeForce GTX 1080] [10de:1b80] (rev a1)
+    01:00.1 Audio device [0403]: NVIDIA Corporation GP104 High Definition Audio Controller [10de:10f0] (rev a1)
     ```
 
-The IDs are `X` and `Y`.
+The IDs are `10de:1b80` and `10de:10f0`.
 
 ### USB Controller
 
 Look up ID by running `$ lspci -nn | grep -i nvidia`. The output will look something like:
 
     ```
-    TODO: Sample output here.
+    07:00.0 USB controller [0c03]: ASMedia Technology Inc. ASM2142 USB 3.1 Host Controller [1b21:2142]
     ```
 
-The ID is `Z`.
+The ID is `1b21:2142`.
 
 ## Step X. Enable the VFIO kernel module
 
@@ -91,7 +91,17 @@ The ID is `Z`.
 
 ## Step X. Configure VFIO
 
-`$ sudo echo 'options vfio-pci ids=X,Y,Z' > /etc/modprobe.d/vfio.conf`
+Tell VFIO which devices to run for
+
+`$ sudo echo 'options vfio-pci ids=10de:1b80,10de:10f0,1b21:2142' > /etc/modprobe.d/vfio.conf`
+
+Force VFIO drivers to load before the Nvidia drivers by
+
+```
+sudo echo 'softdep nvidia pre: vfio vfio_pci' >> /etc/modprobe.d/vfio.conf
+sudo echo 'softdep nvidia_418 pre: vfio vfio_pci' >> /etc/modprobe.d/vfio.conf
+sudo echo 'softdep nvidia_drm pre: vfio vfio_pci' >> /etc/modprobe.d/vfio.conf
+```
 
 ## Step X. Regenerate initramfs
 
@@ -102,3 +112,27 @@ The ID is `Z`.
 ## Step X. Reboot
 
 `$ sudo reboot -h now`
+
+Plug in a display into the onboard HDMI port.
+
+Wait several minutes with a black boot screen... and then log into Pop!_OS.
+
+## Step X. Confirm vfio-pci drivers are being used
+
+On the GPU VGA:
+```
+$ lspci -nnk -d 10de:1b80
+01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GP104 [GeForce GTX 1080] [10de:1b80] (rev a1)
+	Subsystem: Micro-Star International Co., Ltd. [MSI] GP104 [GeForce GTX 1080] [1462:3363]
+	Kernel driver in use: vfio-pci
+	Kernel modules: nvidiafb, nouveau, nvidia_drm, nvidia
+```
+
+On the GPU audio:
+```
+$ lspci -nnk -d 10de:10f0
+01:00.1 Audio device [0403]: NVIDIA Corporation GP104 High Definition Audio Controller [10de:10f0] (rev a1)
+	Subsystem: Micro-Star International Co., Ltd. [MSI] GP104 High Definition Audio Controller [1462:3363]
+	Kernel driver in use: vfio-pci
+	Kernel modules: snd_hda_intel
+```
