@@ -115,7 +115,7 @@ The following guides were helpful in getting this all to work:
 
 Notes:
 - to view current kernel boot options, run `$ sudo kernelstub -p`
-- to remove a kernel boot option, run `$ sudo kernelstub -d "key=value"`
+- to remove a kernel boot option, run `$ sudo kernelstub -d 'key=value'`
 
 ## Step X. Look up device PCI IDs
 
@@ -205,3 +205,8 @@ $ lspci -nnk -d 1b21:2142
 	Subsystem: Gigabyte Technology Co., Ltd ASM2142 USB 3.1 Host Controller [1458:5007]
 	Kernel driver in use: xhci_hcd
 ```
+
+## Troubleshooting
+
+If your host fails to boot, try:
+1. disable `VT-d` in the bios and reboot
