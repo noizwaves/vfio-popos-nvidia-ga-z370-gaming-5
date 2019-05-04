@@ -161,6 +161,11 @@ sudo echo 'softdep nvidia_418 pre: vfio vfio_pci' >> /etc/modprobe.d/vfio.conf
 sudo echo 'softdep nvidia_drm pre: vfio vfio_pci' >> /etc/modprobe.d/vfio.conf
 ```
 
+Force VFIO drivers to load before the USB drivers by
+```
+sudo echo 'softdep xhci_hcd pre: vfio vfio_pci' >> /etc/modprobe.d/vfio.conf
+```
+
 ## Step X. Regenerate initramfs
 
 `$ sudo update-initramfs -u`
