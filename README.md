@@ -17,10 +17,67 @@ VM optimisations of:
 
 ## Known Issues
 
-1. Slow boot when `VT-d` is enabled
-1. Slow shut down when VM has been started
-1. High CPU usage of `system-udev?` when VM is running
-1. High CPU usage of `system-udev?` when VM has been shut down
+## Slow boot when `VT-d` is enabled
+
+## Slow shut down when VM has been started
+
+## High CPU usage of `system-udev?` when VM is running
+
+## High CPU usage of `system-udev?` when VM has been shut down
+
+### Current Fix 
+
+run `$ sudo service udev restart`
+
+## Excessive logging to `dmesg`
+
+From `nvidia-nvlink` and `NVRM`, example:
+
+```
+[  530.504375] nvidia-nvlink: Nvlink Core is being initialized, major device number 234
+[  530.504692] NVRM: The NVIDIA probe routine was not called for 1 device(s).
+[  530.504693] NVRM: This can occur when a driver such as: 
+            NVRM: nouveau, rivafb, nvidiafb or rivatv 
+            NVRM: was loaded and obtained ownership of the NVIDIA device(s).
+[  530.504693] NVRM: Try unloading the conflicting kernel module (and/or
+            NVRM: reconfigure your kernel without the conflicting
+            NVRM: driver(s)), then try loading the NVIDIA kernel module
+            NVRM: again.
+[  530.504694] NVRM: No NVIDIA graphics adapter probed!
+[  530.525816] nvidia-nvlink: Unregistered the Nvlink Core, major device number 234
+[  530.630306] nvidia-nvlink: Nvlink Core is being initialized, major device number 234
+[  530.630470] NVRM: The NVIDIA probe routine was not called for 1 device(s).
+[  530.630470] NVRM: This can occur when a driver such as: 
+            NVRM: nouveau, rivafb, nvidiafb or rivatv 
+            NVRM: was loaded and obtained ownership of the NVIDIA device(s).
+[  530.630470] NVRM: Try unloading the conflicting kernel module (and/or
+            NVRM: reconfigure your kernel without the conflicting
+            NVRM: driver(s)), then try loading the NVIDIA kernel module
+            NVRM: again.
+[  530.630471] NVRM: No NVIDIA graphics adapter probed!
+[  530.649892] nvidia-nvlink: Unregistered the Nvlink Core, major device number 234
+[  530.748590] nvidia-nvlink: Nvlink Core is being initialized, major device number 234
+[  530.748905] NVRM: The NVIDIA probe routine was not called for 1 device(s).
+[  530.748905] NVRM: This can occur when a driver such as: 
+            NVRM: nouveau, rivafb, nvidiafb or rivatv 
+            NVRM: was loaded and obtained ownership of the NVIDIA device(s).
+[  530.748906] NVRM: Try unloading the conflicting kernel module (and/or
+            NVRM: reconfigure your kernel without the conflicting
+            NVRM: driver(s)), then try loading the NVIDIA kernel module
+            NVRM: again.
+[  530.748906] NVRM: No NVIDIA graphics adapter probed!
+[  530.777793] nvidia-nvlink: Unregistered the Nvlink Core, major device number 234
+[  530.864642] nvidia-nvlink: Nvlink Core is being initialized, major device number 234
+[  530.864955] NVRM: The NVIDIA probe routine was not called for 1 device(s).
+[  530.864956] NVRM: This can occur when a driver such as: 
+            NVRM: nouveau, rivafb, nvidiafb or rivatv 
+            NVRM: was loaded and obtained ownership of the NVIDIA device(s).
+[  530.864956] NVRM: Try unloading the conflicting kernel module (and/or
+            NVRM: reconfigure your kernel without the conflicting
+            NVRM: driver(s)), then try loading the NVIDIA kernel module
+            NVRM: again.
+[  530.864957] NVRM: No NVIDIA graphics adapter probed!
+```
 
 ## Useful resources
 
@@ -49,18 +106,16 @@ The following guides were helpful in getting this all to work:
 
 `$ sudo apt install qemu-kvm libvirt-clients libvirt-daemon-system bridge-utils virt-manager ovmf`
 
-## Step X. Disable Nvidia drivers
-
-1. Create file at `/etc/modprobe.d/blacklist-nvidia.conf` with contents:
-    ```
-    blacklist nvidia
-    ```
-
 ## Step X. Add kernel parameters
 
-1. `$ sudo kernelstub -a 'intel_iommu=on'` to do X
-1. `$ sudo kernelstub -a 'iommu=pt'` to do X
-1. `$ sudo kernelstub -a 'iommu=1'` to do X
+1. `$ sudo kernelstub -a 'intel_iommu=on'` to do ?
+1. `$ sudo kernelstub -a 'iommu=pt'` to do ?
+1. `$ sudo kernelstub -a 'iommu=1'` to do ?
+1. `$ sudo kernelstub -a "pci=noaer"` to fix an issue that prevented the VM from starting when the USB Controller was attached
+
+Notes:
+- to view current kernel boot options, run `$ sudo kernelstub -p`
+- to remove a kernel boot option, run `$ sudo kernelstub -d "key=value"`
 
 ## Step X. Look up device PCI IDs
 
@@ -117,6 +172,12 @@ Plug in a display into the onboard HDMI port.
 
 Wait several minutes with a black boot screen... and then log into Pop!_OS.
 
+## Step X. Confirm IOMMU is working
+
+QUICK! After logging in run `$ dmesg | grep -e DMAR -e IOMMU` and see if there is any messages.
+
+If this is run too late, the `dmesg` will be flooded with `nvidia` log junk.
+
 ## Step X. Confirm vfio-pci drivers are being used
 
 On the GPU VGA:
@@ -135,4 +196,12 @@ $ lspci -nnk -d 10de:10f0
 	Subsystem: Micro-Star International Co., Ltd. [MSI] GP104 High Definition Audio Controller [1462:3363]
 	Kernel driver in use: vfio-pci
 	Kernel modules: snd_hda_intel
+```
+
+On the USB Controller, it doesn't seem to show the `vfio-pci` driver, but this output results in a successful passthrough:
+```
+$ lspci -nnk -d 1b21:2142
+07:00.0 USB controller [0c03]: ASMedia Technology Inc. ASM2142 USB 3.1 Host Controller [1b21:2142]
+	Subsystem: Gigabyte Technology Co., Ltd ASM2142 USB 3.1 Host Controller [1458:5007]
+	Kernel driver in use: xhci_hcd
 ```
